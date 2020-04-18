@@ -1,0 +1,193 @@
+MicroFrontend - UI Angular custom element with Web components:
+--------------------------------------------------------------
+NodeJs 10.x Ng-CLI 9.0.1
+
+MicroApp:
+
+Step:1
+ng new MicroApp
+
+complete the All the development of Child/Micro app as entire app or particular component as ??? Particular module???
+Note: For Module ill be part of any component. So, The idea will module will become component as mciroApp
+
+Step:2
+MicroApp:> ng add @angular/elements
+
+will generate / Impact
+package.json ->
+  "@angular/elements": "^9.0.7",
+  "document-register-element": "1.8.1",   --> change the version 1.8.1 if not then npm install
+
+polyfill.ts ->Automatically Import this packages into polyfills.ts file: if not do it maually and npm i
+  import 'document-register-element';
+
+Stpe:3
+
+Install some polyfills:
+MicroApp:> npm i @webcomponents/custom-elements --save
+
+Import those packages into polyfills.ts file:
+
+import "@webcomponents/custom-elements/src/native-shim";
+import "@webcomponents/custom-elements/custom-elements.min";
+
+Step:4
+MicroApp:> ng add ngx-build-plus
+
+will generate / Impact
+package.json ->
+ "ngx-build-plus": "^9.0.6",
+
+
+"architect": {  "build": {    "builder": "ngx-build-plus:browser  .... $while building$ "builder": "ngx-build-plus:build",  ....
+				"budget": [
+                			// to avaoid budget Error 
+            			   	 {
+           				       "type": "anyComponentStyle",
+           				       "maximumWarning": "2mb",  //from 6kb
+              				      "maximumError": "5mb"     // from10kb
+           			    	 }
+          			    ]
+"serve": {    "builder": "ngx-build-plus:dev-server",    ...
+"test": {    "builder": "ngx-build-plus:karma",
+
+
+Step:5
+MicroApp:> app.module.ts
+import { BrowserModule } from '@angular/platform-browser';
+import { NgModule, Injector} from '@angular/core';
+
+import { createCustomElement } from '@angular/elements';
+
+bootstrap: [],   // while develop it will get fill , but in build time it must be empty
+entryComponents: [AppComponent]   // entire app as microUI
+
+export class AppModule { 
+
+  constructor(private injector: Injector){   }
+
+  ngDoBootstrap(){
+    const myCustomElement = createCustomElement(AppComponent, { injector: this.injector });
+    customElements.define('micro-app1', myCustomElement);    /// micto-app is <custom-elment-tag> like <header> <footer>
+  }
+}
+
+Step:6
+
+build the child app and generate dist for master/parent app
+
+MicroApp:>ng build --prod --output-hashing none --single-bundle true --bundle-styles false
+Notes:
+--output-hashing none ->will avoid hashing the file names.
+--single-bundle true ->will bundle all the compiled files into a single JS file.
+--bundle-styles false ->if we follow the same library css for all the projects
+
+Step:6.1
+Sometimes budget error will occur. so, Make the correction at MicroApp angular.json
+ "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2mb",  //from 6kb
+                  "maximumError": "5mb"     // from10kb
+                }
+              ]
+copy the dist folder into master app src/app/assets/MicroApp --> which contains Main.js, index.html,3 other files
+
+Step:6.1
+
+To do the auto copy -> npm install copyfiles -g   // in the machine/ laptop
+
+MciroApp:> npm run copfiles : copyfiles ./dist/*.* MasterAppPath/src/app/assets
+
+ALternatively :   ng build make output path from MciroApp
+
+Step:7
+
+To generate mutliple micro app follow the step -> Step 1- 6
+
+Another child app or MciroApp dist 
+
+
+Step:8 
+MasterApp / ContainerApp / 
+ng new MasterApp
+
+Step: 9 ( Repeat Step 2 )
+MasterApp:> ng add @angular/elements
+
+will generate / Impact
+package.json ->
+  "@angular/elements": "^9.0.7",
+  "document-register-element": "1.8.1",   --> change the version 1.8.1 if not then npm install
+
+polyfill.ts ->Automatically Import this packages into polyfills.ts file: if not do it maually and npm i
+  import 'document-register-element';
+
+Step:10 (  Repeat Step 3 )  [ No need ngx-build - Which is step4 ]
+
+Install some polyfills:
+MicroApp:> npm i @webcomponents/custom-elements --save
+
+Import those packages into polyfills.ts file:
+
+import "@webcomponents/custom-elements/src/native-shim";
+import "@webcomponents/custom-elements/custom-elements.min";
+
+Step:11
+
+MasterApp 
+app.module.ts
+import { NgModule, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+
+bootstrap: [AppComponent],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA]  // which allows custom element as recognized element in master App
+})
+export class AppModule { }
+
+Step:12
+MastetApp:
+
+Whichever the component need to import/use the in that component
+
+MasterApp - Requiedcomponent.component.ts
+
+  childAppPath = 'http://localhost:4200/assets/MicroApp/main.js';
+  constructor(){   }
+
+  ngOnInit() {
+    this.loadScript(this.childAppPath);   
+  }
+
+  loadScript(scriptPath): void {
+
+    var alreadyLoaded = false;
+
+    for (var scriptIndex in document.scripts) {
+     // console.log(scriptPath, scriptIndex, document.scripts[scriptIndex].src)
+      if (!alreadyLoaded && scriptPath === document.scripts[scriptIndex].src) {
+        alreadyLoaded = true;
+        break;
+      }
+    }
+    if (!alreadyLoaded) {
+      const content = document.getElementById('content');
+      const script = document.createElement('script');
+      script.src = scriptPath;
+      content.appendChild(script);
+    }
+  }
+
+Step:13
+MasterApp - 
+
+<div id="content"><micro-app1></micro-app1></div>    // <micro-app1> is the custom Tag element mentioned at MicroApp app.module.ts
+
+MasterApp:> ng serve ==> http://localhost:4200 default if chagne the default port Change the ChilAppPath/port
+
+note: Some times, node js 12 will gives Build for http-server error. So maintain node js version 10 for angualr cli9
+      Sometime Buget[.] will come, So increase the angular.json , 
